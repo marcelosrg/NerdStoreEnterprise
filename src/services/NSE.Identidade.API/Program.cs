@@ -25,12 +25,13 @@ builder.Services.AddDefaultIdentity<IdentityUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+
+//Configuração do JWT
 var appSettingsSection = builder.Configuration.GetSection("AppSettings");
 builder.Services.Configure<AppSettings>(appSettingsSection);
 
 var appSettings = appSettingsSection.Get<AppSettings>();
 var key = Encoding.ASCII.GetBytes(appSettings.Secret);
-
 
 
 builder.Services.AddAuthentication(options =>
@@ -46,8 +47,8 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes("x")),
         ValidateIssuer = true,
-        ValidAudience = "x",
-        ValidIssuer = "x"
+        ValidAudience = appSettings.ValidoEm,
+        ValidIssuer = appSettings.Emissor
     };
 });
 
