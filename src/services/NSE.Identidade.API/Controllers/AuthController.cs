@@ -34,7 +34,8 @@ namespace NSE.Identidade.API.Controllers
         public async Task<ActionResult> RegisterUser(UserRegister userRegister)
         {
 
-            if (!ModelState.IsValid) return CustomResponse(ModelState);
+
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
 
             var user = new IdentityUser
@@ -49,10 +50,11 @@ namespace NSE.Identidade.API.Controllers
 
             if (result.Succeeded)
             {
+
                 return CustomResponse(await GenerateJwt(userRegister.Email));
             }
 
-            foreach(var error in result.Errors)
+            foreach (var error in result.Errors)
             {
                 AddErrorProcess(error.Description);
             }
@@ -81,7 +83,7 @@ namespace NSE.Identidade.API.Controllers
                 AddErrorProcess("Usuário temporariamente bloqueado por tentativas inválidas");
                 return CustomResponse();
             }
-            
+
             AddErrorProcess("Usuário ou Senha incorretos");
 
             return CustomResponse();
@@ -106,43 +108,42 @@ namespace NSE.Identidade.API.Controllers
                 claims.Add(new Claim("role", userRole));
 
             }
+                var identityClaims = new ClaimsIdentity();
+                identityClaims.AddClaims(claims);
 
-            var identityClaims = new ClaimsIdentity();
-            identityClaims.AddClaims(claims);
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
-
-            var token = tokenHandler.CreateToken(new SecurityTokenDescriptor
-            {
-                Issuer = _appSettings.Emissor,
-                Audience = _appSettings.ValidoEm,
-                Subject = identityClaims,
-                Expires = DateTime.UtcNow.AddHours(_appSettings.ExpiracaoHoras),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            });
-
-            var encodedToken = tokenHandler.WriteToken(token);
-
-            var response = new UserResponseLogin
-            {
-                AccessToken = encodedToken,
-                ExpiresIn = TimeSpan.FromHours(_appSettings.ExpiracaoHoras).TotalSeconds,
-                userToken = new UserToken
+                var token = tokenHandler.CreateToken(new SecurityTokenDescriptor
                 {
-                    Id = user.Id,
-                    Email = user.Email,
-                    Claims = claims.Select(c => new UserClaims { Type = c.Type, Value = c.Value })
-                }
-            };
+                    Issuer = _appSettings.Emissor,
+                    Audience = _appSettings.ValidoEm,
+                    Subject = identityClaims,
+                    Expires = DateTime.UtcNow.AddHours(_appSettings.ExpiracaoHoras),
+                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                });
 
-            return response;
-        }
+                var encodedToken = tokenHandler.WriteToken(token);
 
+                var response = new UserResponseLogin
+                {
+                    AccessToken = encodedToken,
+                    ExpiresIn = TimeSpan.FromHours(_appSettings.ExpiracaoHoras).TotalSeconds,
+                    userToken = new UserToken
+                    {
+                        Id = user.Id,
+                        Email = user.Email,
+                        Claims = claims.Select(c => new UserClaims { Type = c.Type, Value = c.Value })
+                    }
+                };
+
+                return response;
+            }
 
         private static long ToUnixEpochDate(DateTime date)
             => (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
 
     }
 }
-
+ 
+     
