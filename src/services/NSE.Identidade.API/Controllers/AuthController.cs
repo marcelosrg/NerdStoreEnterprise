@@ -11,7 +11,7 @@ using System.Text;
 namespace NSE.Identidade.API.Controllers
 {
     [Route("api/identity")]
-    public class AuthController : Controller
+    public class AuthController : ControllerBase
     {
 
         private readonly SignInManager<IdentityUser> _signInManager;
@@ -19,9 +19,11 @@ namespace NSE.Identidade.API.Controllers
         private readonly AppSettings _appSettings;
 
 
-        public AuthController(  SignInManager<IdentityUser> signInManager,
+
+        public AuthController(SignInManager<IdentityUser> signInManager,
                                     UserManager<IdentityUser> userManager,
-                                        IOptions <AppSettings> appSettings)
+                                        IOptions<AppSettings> appSettings)
+
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -32,7 +34,8 @@ namespace NSE.Identidade.API.Controllers
         public async Task<ActionResult> RegisterUser(UserRegister userRegister)
         {
 
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) return CustomResponse(ModelState);
+
 
             var user = new IdentityUser
             {
@@ -46,13 +49,16 @@ namespace NSE.Identidade.API.Controllers
 
             if (result.Succeeded)
             {
-                await _signInManager.SignInAsync(user, false);
-                return Ok(await GenerateJwt(userRegister.Email));
+                return CustomResponse(await GenerateJwt(userRegister.Email));
             }
 
-            
-            return BadRequest(result.Errors);
-    
+            foreach(var error in result.Errors)
+            {
+                AddErrorProcess(error.Description);
+            }
+            return CustomResponse(ModelState);
+
+
 
         }
 
@@ -60,35 +66,45 @@ namespace NSE.Identidade.API.Controllers
         public async Task<ActionResult> LoginUser(UserLogin userLogin)
         {
 
-            if (!ModelState.IsValid) return BadRequest();
+            if (!ModelState.IsValid) return CustomResponse(ModelState);
 
             var result = await _signInManager.PasswordSignInAsync(userLogin.Email, userLogin.Password, false, true);
-            
+
             if (result.Succeeded)
-            { 
-                return Ok(await GenerateJwt(userLogin.Email));
+
+            {
+                return CustomResponse(await GenerateJwt(userLogin.Email));
             }
 
-            return BadRequest();
+            if (result.IsLockedOut)
+            {
+                AddErrorProcess("Usuário temporariamente bloqueado por tentativas inválidas");
+                return CustomResponse();
+            }
+            
+            AddErrorProcess("Usuário ou Senha incorretos");
+
+            return CustomResponse();
         }
-    
-        
+
+
         private async Task<UserResponseLogin> GenerateJwt(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
             var claims = await _userManager.GetClaimsAsync(user);
             var userRoles = await _userManager.GetRolesAsync(user);
-           
+
 
             claims.Add(new Claim(JwtRegisteredClaimNames.Sub, user.Id));
             claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
             claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
-            claims.Add(new Claim(JwtRegisteredClaimNames.Nbf, ToUnixEpochDate(DateTime.UtcNow). ToString()));
+            claims.Add(new Claim(JwtRegisteredClaimNames.Nbf, ToUnixEpochDate(DateTime.UtcNow).ToString()));
             claims.Add(new Claim(JwtRegisteredClaimNames.Iat, ToUnixEpochDate(DateTime.UtcNow).ToString(), ClaimValueTypes.Integer64));
-        
-            foreach(var userRole in userRoles)
+
+            foreach (var userRole in userRoles)
             {
                 claims.Add(new Claim("role", userRole));
+
             }
 
             var identityClaims = new ClaimsIdentity();
@@ -115,7 +131,7 @@ namespace NSE.Identidade.API.Controllers
                 userToken = new UserToken
                 {
                     Id = user.Id,
-                    Email = user.Email, 
+                    Email = user.Email,
                     Claims = claims.Select(c => new UserClaims { Type = c.Type, Value = c.Value })
                 }
             };
@@ -123,8 +139,10 @@ namespace NSE.Identidade.API.Controllers
             return response;
         }
 
+
         private static long ToUnixEpochDate(DateTime date)
-            => (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0,0,0, TimeSpan.Zero)).TotalSeconds);
-        
+            => (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
+
     }
-}        
+}
+
