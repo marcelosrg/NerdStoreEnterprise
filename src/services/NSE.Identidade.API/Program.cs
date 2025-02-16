@@ -25,12 +25,13 @@ builder.Services.AddDefaultIdentity<IdentityUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+
+//Configuração do JWT
 var appSettingsSection = builder.Configuration.GetSection("AppSettings");
 builder.Services.Configure<AppSettings>(appSettingsSection);
 
 var appSettings = appSettingsSection.Get<AppSettings>();
 var key = Encoding.ASCII.GetBytes(appSettings.Secret);
-
 
 
 builder.Services.AddAuthentication(options =>
@@ -46,8 +47,8 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes("x")),
         ValidateIssuer = true,
-        ValidAudience = "x",
-        ValidIssuer = "x"
+        ValidAudience = appSettings.ValidoEm,
+        ValidIssuer = appSettings.Emissor
     };
 });
 
@@ -59,8 +60,8 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "NerdStore Enterprise Identity API",
         Description = "Esta API faz parte do curso ASP.NET Core Enterprise Application.",
-        Contact = new OpenApiContact() {Name = "Marcelo Henrique", Email = "marcelodotnet@gmail.com"},
-        License = new OpenApiLicense() {Name = "MIT", Url = new Uri("http://opensource.org/licenses/MIT") }
+        Contact = new OpenApiContact() { Name = "Marcelo Henrique", Email = "marcelodotnet@gmail.com" },
+        License = new OpenApiLicense() { Name = "MIT", Url = new Uri("http://opensource.org/licenses/MIT") }
     });
 });
 
