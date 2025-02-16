@@ -1,12 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using NSE.Identidade.API.Data;
-using Microsoft.OpenApi.Models;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using NSE.Identidade.API.Extensions;
-using Microsoft.Extensions.Hosting;
+
 using NSE.Identidade.API.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
