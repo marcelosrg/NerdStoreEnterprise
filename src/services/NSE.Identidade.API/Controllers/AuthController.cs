@@ -19,9 +19,11 @@ namespace NSE.Identidade.API.Controllers
         private readonly AppSettings _appSettings;
 
 
+
         public AuthController(SignInManager<IdentityUser> signInManager,
                                     UserManager<IdentityUser> userManager,
                                         IOptions<AppSettings> appSettings)
+
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -33,6 +35,7 @@ namespace NSE.Identidade.API.Controllers
         {
 
             if (!ModelState.IsValid) return CustomResponse(ModelState);
+
 
             var user = new IdentityUser
             {
@@ -56,6 +59,7 @@ namespace NSE.Identidade.API.Controllers
             return CustomResponse(ModelState);
 
 
+
         }
 
         [HttpPost("sign-in")]
@@ -67,6 +71,7 @@ namespace NSE.Identidade.API.Controllers
             var result = await _signInManager.PasswordSignInAsync(userLogin.Email, userLogin.Password, false, true);
 
             if (result.Succeeded)
+
             {
                 return CustomResponse(await GenerateJwt(userLogin.Email));
             }
@@ -99,6 +104,7 @@ namespace NSE.Identidade.API.Controllers
             foreach (var userRole in userRoles)
             {
                 claims.Add(new Claim("role", userRole));
+
             }
 
             var identityClaims = new ClaimsIdentity();
@@ -133,8 +139,10 @@ namespace NSE.Identidade.API.Controllers
             return response;
         }
 
+
         private static long ToUnixEpochDate(DateTime date)
             => (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
 
     }
 }
+

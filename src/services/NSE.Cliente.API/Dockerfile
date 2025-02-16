@@ -12,10 +12,10 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["NSE.Cliente.API/NSE.Cliente.API.csproj", "NSE.Cliente.API/"]
-RUN dotnet restore "./NSE.Cliente.API/NSE.Cliente.API.csproj"
+COPY ["src/services/NSE.Cliente.API/NSE.Cliente.API.csproj", "src/services/NSE.Cliente.API/"]
+RUN dotnet restore "./src/services/NSE.Cliente.API/NSE.Cliente.API.csproj"
 COPY . .
-WORKDIR "/src/NSE.Cliente.API"
+WORKDIR "/src/src/services/NSE.Cliente.API"
 RUN dotnet build "./NSE.Cliente.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Esta fase é usada para publicar o projeto de serviço a ser copiado para a fase final
