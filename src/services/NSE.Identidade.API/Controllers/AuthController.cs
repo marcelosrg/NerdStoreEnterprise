@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -34,8 +35,7 @@ namespace NSE.Identidade.API.Controllers
         public async Task<ActionResult> RegisterUser(UserRegister userRegister)
         {
 
-
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) return CustomResponse(ModelState);
 
 
             var user = new IdentityUser
@@ -50,11 +50,10 @@ namespace NSE.Identidade.API.Controllers
 
             if (result.Succeeded)
             {
-
                 return CustomResponse(await GenerateJwt(userRegister.Email));
             }
 
-            foreach (var error in result.Errors)
+            foreach(var error in result.Errors)
             {
                 AddErrorProcess(error.Description);
             }
@@ -83,19 +82,28 @@ namespace NSE.Identidade.API.Controllers
                 AddErrorProcess("Usuário temporariamente bloqueado por tentativas inválidas");
                 return CustomResponse();
             }
-
+            
             AddErrorProcess("Usuário ou Senha incorretos");
 
             return CustomResponse();
         }
 
-
         private async Task<UserResponseLogin> GenerateJwt(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
             var claims = await _userManager.GetClaimsAsync(user);
-            var userRoles = await _userManager.GetRolesAsync(user);
+            
+            //var userRoles = await _userManager.GetRolesAsync(user);
+            var identityClaims = await GetClaimsUser(claims, user);
+            var encodedToken = CodedToken(identityClaims);
 
+            return GetResponseToken(encodedToken, user, claims);
+        }
+
+
+        private async Task<ClaimsIdentity> GetClaimsUser(ICollection<Claim> claims, IdentityUser user)
+        {
+            var userRoles = await _userManager.GetRolesAsync(user);
 
             claims.Add(new Claim(JwtRegisteredClaimNames.Sub, user.Id));
             claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
@@ -108,42 +116,53 @@ namespace NSE.Identidade.API.Controllers
                 claims.Add(new Claim("role", userRole));
 
             }
-                var identityClaims = new ClaimsIdentity();
-                identityClaims.AddClaims(claims);
 
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
+            var identityClaims = new ClaimsIdentity();
+            identityClaims.AddClaims(claims);
 
-                var token = tokenHandler.CreateToken(new SecurityTokenDescriptor
+            return identityClaims; 
+        }
+
+
+        private string CodedToken(ClaimsIdentity identityClaims)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
+
+            var token = tokenHandler.CreateToken(new SecurityTokenDescriptor
+            {
+                Issuer = _appSettings.Emissor,
+                Audience = _appSettings.ValidoEm,
+                Subject = identityClaims,
+                Expires = DateTime.UtcNow.AddHours(_appSettings.ExpiracaoHoras),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            });
+
+            return tokenHandler.WriteToken(token);
+        }
+
+
+        private UserResponseLogin GetResponseToken(string encodedToken, IdentityUser user, IEnumerable<Claim> claims)
+        {
+            return new UserResponseLogin
+            {
+                AccessToken = encodedToken,
+                ExpiresIn = TimeSpan.FromHours(_appSettings.ExpiracaoHoras).TotalSeconds,
+                userToken = new UserToken
                 {
-                    Issuer = _appSettings.Emissor,
-                    Audience = _appSettings.ValidoEm,
-                    Subject = identityClaims,
-                    Expires = DateTime.UtcNow.AddHours(_appSettings.ExpiracaoHoras),
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-                });
+                    Id = user.Id,
+                    Email = user.Email,
+                    Claims = claims.Select(c => new UserClaims { Type = c.Type, Value = c.Value })
 
-                var encodedToken = tokenHandler.WriteToken(token);
+                }
 
-                var response = new UserResponseLogin
-                {
-                    AccessToken = encodedToken,
-                    ExpiresIn = TimeSpan.FromHours(_appSettings.ExpiracaoHoras).TotalSeconds,
-                    userToken = new UserToken
-                    {
-                        Id = user.Id,
-                        Email = user.Email,
-                        Claims = claims.Select(c => new UserClaims { Type = c.Type, Value = c.Value })
-                    }
-                };
-
-                return response;
-            }
+            };
+        }
+        
 
         private static long ToUnixEpochDate(DateTime date)
             => (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
 
     }
 }
- 
-     
+
