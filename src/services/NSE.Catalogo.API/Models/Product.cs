@@ -8,7 +8,7 @@ namespace NSE.Catalogo.API.Models
 
         public  string Descripition { get; set; }
 
-        public bool Active { get; set; }
+        public bool Active { get; set; } = true;
 
         public decimal Price { get; set; }
 
