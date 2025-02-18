@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NSE.Catalogo.API.Data;
+using NSE.Catalogo.API.Data.Repository;
+using NSE.Catalogo.API.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,9 @@ builder.Services.AddDbContext<CatalogContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<CatalogContext>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
