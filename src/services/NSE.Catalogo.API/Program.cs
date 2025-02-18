@@ -1,6 +1,7 @@
 
 
 using NSE.Catalogo.API.Configuration;
+using NSE.WebAPI.Core.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,11 +10,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApiConfiguration(builder.Configuration);
 
+builder.Services.AddAuthConfiguration(builder.Configuration);
+
 builder.Services.RegisterServices();
 
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+
 builder.Services.AddSwaggerConfiguration();
 
 var app = builder.Build();

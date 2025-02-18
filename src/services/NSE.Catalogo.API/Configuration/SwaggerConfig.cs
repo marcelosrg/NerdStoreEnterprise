@@ -16,6 +16,8 @@ namespace NSE.Catalogo.API.Configuration
                     License = new OpenApiLicense { Name = "MIT", Url = new Uri("http://opensource.org/licenses/MIT") }
                 });
             });
+
+            services.AddSwaggerGen();
             return services;
         }
 
