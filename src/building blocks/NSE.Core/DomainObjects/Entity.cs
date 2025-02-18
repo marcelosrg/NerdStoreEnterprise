@@ -9,7 +9,7 @@ namespace NSE.Core.DomainObjects
 {
     public abstract class Entity
     {
-        public Guid Id { get; set; }
+        public Guid Id { get;}
         public override bool Equals(object? obj)
         {
                 var compareTo = obj as Entity;
