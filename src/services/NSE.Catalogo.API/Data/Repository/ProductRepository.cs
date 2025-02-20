@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using NSE.Catalogo.API.Models;
 using NSE.Core.Data;
 
@@ -27,7 +28,10 @@ namespace NSE.Catalogo.API.Data.Repository
         }
         public void AddProduct(Product product)
         {
-           _context.Products.Add(product);
+
+            _context.Products.Add(product);
+            _context.SaveChanges();
+            
         }
 
         public void UpdateProduct(Product product)
@@ -39,6 +43,6 @@ namespace NSE.Catalogo.API.Data.Repository
             _context?.Dispose();
         }
 
-       
+      
     }
 }
